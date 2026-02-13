@@ -1,0 +1,359 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Для моей любимой ❤️</title>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        /* Основные цвета и переменные */
+        :root {
+            --primary: #ff4757;   /* Основной красный */
+            --secondary: #ff6b81; /* Розовый для конверта */
+            --text: #4a4a4a;      /* Цвет текста */
+        }
+
+        /* Сброс стандартных отступов */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        /* Настройки тела страницы */
+        body {
+            background: #fff0f3;
+            height: 100dvh; /* Использование динамической высоты для мобильных */
+            overflow: hidden;
+            font-family: 'Montserrat', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Красивый живой фон с плавающими сердечками (реализуется в JS) */
+        .hearts-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            overflow: hidden;
+        }
+
+        /* Контейнер для страниц */
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Стили для каждой "страницы" (карточки) */
+        .page {
+            position: absolute;
+            width: 90%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px); /* Эффект матового стекла */
+            padding: 30px 20px;
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            text-align: center;
+            display: none; /* По умолчанию скрыты */
+            flex-direction: column;
+            align-items: center;
+            animation: slideUp 0.6s ease-out forwards; /* Анимация появления */
+        }
+
+        /* Анимация появления страницы снизу */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Класс для отображения текущей страницы */
+        .active { display: flex; }
+
+        /* Типографика */
+        h1 { font-family: 'Great Vibes', cursive; color: var(--primary); font-size: 3rem; margin-bottom: 15px; }
+        p { font-size: 0.95rem; line-height: 1.6; color: var(--text); margin-bottom: 20px; }
+        b { color: var(--primary); }
+
+        /* Стили кнопок */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+            cursor: pointer;
+            width: 100%;
+            transition: 0.3s;
+        }
+        .btn:active { transform: scale(0.95); } /* Эффект нажатия */
+
+        /* --- КОНВЕРТ (ИСПРАВЛЕННЫЙ) --- */
+        .envelope-wrapper {
+            position: relative;
+            width: 250px;
+            height: 150px;
+            background: var(--secondary);
+            border-radius: 0 0 10px 10px;
+            cursor: pointer;
+            margin: 40px 0;
+            z-index: 10;
+        }
+
+        /* Треугольный клапан конверта */
+        .envelope-wrapper::before {
+            content: '';
+            position: absolute;
+            top: -100px; left: 0;
+            border-left: 125px solid transparent;
+            border-right: 125px solid transparent;
+            border-bottom: 100px solid var(--primary);
+            transition: transform 0.8s ease; /* Замедлил открытие клапана */
+            transform-origin: bottom;
+            z-index: 20;
+        }
+
+        /* Анимация открытия клапана */
+        .envelope-wrapper.open::before {
+            transform: rotateX(180deg) translateY(100px);
+            z-index: 5; /* Убираем клапан назад после открытия */
+        }
+
+        /* Письмо внутри конверта */
+        .letter-preview {
+            position: absolute;
+            top: 10px; left: 10px;
+            width: 230px; height: 130px;
+            background: white;
+            z-index: 15;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            /* Базовая анимация для письма */
+            transition: transform 1.5s ease-in-out, opacity 1s ease 0.5s;
+        }
+
+        /* === ВАЖНОЕ ИСПРАВЛЕНИЕ АНИМАЦИИ ПИСЬМА === */
+        /* Когда конверт открыт, письмо вылетает высоко вверх и исчезает */
+        .envelope-wrapper.open .letter-preview {
+            /* Поднимаем гораздо выше (-200px) и немного уменьшаем */
+            transform: translateY(-200px) scale(0.8);
+            /* Делаем прозрачным */
+            opacity: 0;
+            /* Увеличиваем время анимации */
+        }
+
+        /* --- ФОТО И ТАЙМЕР --- */
+        .photo-box {
+            width: 200px; height: 200px;
+            border-radius: 20px;
+            border: 5px solid white;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+        /* Стили для картинки, чтобы она заполняла весь блок */
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        .time-counter {
+            background: #fff0f3;
+            padding: 10px;
+            border-radius: 15px;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+        }
+
+        /* --- АНИМАЦИЯ ПОДАРКА (качание) --- */
+        .gift-img { font-size: 4rem; animation: wobble 2s infinite; }
+        @keyframes wobble {
+            0% { transform: rotate(0); }
+            15% { transform: rotate(-10deg); }
+            30% { transform: rotate(10deg); }
+            45% { transform: rotate(-10deg); }
+            100% { transform: rotate(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="hearts-bg" id="hearts-bg"></div>
+
+    <div class="container">
+        
+        <div id="p1" class="page active" style="background: transparent; box-shadow: none;">
+            <h1 style="color: white; text-shadow: 2px 2px 10px rgba(0,0,0,0.2);">Тебе письмо...</h1>
+            <div class="envelope-wrapper" id="env" onclick="openEnvelope()">
+                <div class="letter-preview">❤️</div>
+            </div>
+            <p style="color: white; font-weight: 600; margin-top: 20px;">Нажми на конверт, чтобы открыть</p>
+        </div>
+
+        <div id="p2" class="page">
+            <h1>Мы вместе</h1>
+            <div class="photo-box">
+                <img src="photo.jpg" alt="Наше фото" onerror="this.src='https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=500'">
+            </div>
+            <div class="time-counter" id="timer">Считаем время...</div>
+            <p>
+                Помнишь <b>26 июля 2025 года</b>? Это был день нашего знакомства. С того момента мой мир стал в тысячу раз ярче. Я благодарен каждой минуте, проведенной с тобой.
+            </p>
+            <button class="btn" onclick="nextPage(3)">Что дальше? ✨</button>
+        </div>
+
+        <div id="p3" class="page">
+            <h1>Маленький секрет</h1>
+            <div class="gift-img">🎁</div>
+            <p>
+                Этот сайт — лишь начало моих поздравлений. Я хочу радовать тебя каждый день, но самый главный сюрприз...
+            </p>
+            <p style="font-size: 1.2rem; color: var(--primary); font-weight: bold;">
+                Жди 28 февраля!
+            </p>
+            <p>Обещаю, этот подарок заставит тебя улыбнуться. Ты заслуживаешь всего самого лучшего.</p>
+            <button class="btn" onclick="nextPage(4)">И последнее...</button>
+        </div>
+
+        <div id="p4" class="page">
+            <h1 style="font-size: 4rem;">Люблю тебя!</h1>
+            <p>
+                Ты — моё счастье, моё вдохновение и моя самая большая любовь. <br><br>
+                Просто нажми на кнопку ниже, если тоже меня любишь...
+            </p>
+            <button class="btn" onclick="massiveConfetti()">Нажать и получить поцелуй 😘</button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- ФОНОВЫЕ СЕРДЕЧКИ ---
+        // Функция создает плавающие сердечки на заднем плане
+        function createBgHearts() {
+            const bg = document.getElementById('hearts-bg');
+            // Создаем 15 сердечек за раз
+            for (let i = 0; i < 15; i++) {
+                const heart = document.createElement('div');
+                heart.innerHTML = '❤️';
+                heart.style.position = 'absolute';
+                // Случайная позиция по горизонтали
+                heart.style.left = Math.random() * 100 + 'vw';
+                // Начальная позиция снизу экрана
+                heart.style.top = '110vh';
+                // Случайный размер
+                heart.style.fontSize = (Math.random() * 20 + 10) + 'px';
+                // Случайная прозрачность
+                heart.style.opacity = Math.random();
+                // Случайная скорость полета
+                heart.style.transition = `transform ${Math.random() * 5 + 5}s linear, top ${Math.random() * 5 + 5}s linear`;
+                bg.appendChild(heart);
+
+                // Запускаем анимацию полета вверх с небольшой задержкой
+                setTimeout(() => {
+                    heart.style.top = '-10vh'; // Летят выше верхней границы экрана
+                    // Добавляем небольшое вращение и смещение вбок при полете
+                    heart.style.transform = `translateX(${Math.random() * 100 - 50}px) rotate(360deg)`;
+                }, 100);
+                
+                // Удаляем сердечко из DOM после окончания анимации, чтобы не перегружать память
+                 setTimeout(() => {
+                    heart.remove();
+                 }, 10000);
+            }
+        }
+        // Запускаем создание сердечек каждые 3 секунды
+        setInterval(createBgHearts, 3000);
+        createBgHearts(); // Запускаем сразу при загрузке
+
+        // --- ЛОГИКА КОНВЕРТА (ИСПРАВЛЕНА ЗАДЕРЖКА) ---
+        function openEnvelope() {
+            const env = document.getElementById('env');
+            // Добавляем класс, который запускает CSS-анимацию открытия и вылета письма
+            env.classList.add('open');
+            
+            // ВАЖНОЕ ИЗМЕНЕНИЕ: Увеличили задержку до 2500мс (2.5 секунды)
+            // Теперь анимация вылета письма успевает проиграться полностью до перехода.
+            setTimeout(() => {
+                nextPage(2);
+                startTimer();
+            }, 2500); 
+        }
+
+        // --- ПЕРЕХОД МЕЖДУ СТРАНИЦАМИ ---
+        function nextPage(num) {
+            // Скрываем все страницы
+            document.querySelectorAll('.page').forEach(p => {
+                p.classList.remove('active');
+            });
+            // Показываем нужную страницу по ID
+            document.getElementById('p' + num).classList.add('active');
+        }
+
+        // --- ТАЙМЕР ЗНАКОМСТВА ---
+        function startTimer() {
+            // ВАЖНО: Установите здесь ВАШУ дату и время знакомства (Год-Месяц-День T Часы:Минуты:Секунды)
+            const startDate = new Date('2025-07-26T12:00:00');
+            
+            function update() {
+                const now = new Date();
+                const diff = now - startDate; // Разница в миллисекундах
+
+                // Вычисляем дни, часы, минуты, секунды
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const m = Math.floor((diff / 1000 / 60) % 60);
+                const s = Math.floor((diff / 1000) % 60);
+                
+                // Обновляем текст в блоке таймера
+                document.getElementById('timer').innerText = `Мы знакомы: ${d}д ${h}ч ${m}м ${s}с`;
+            }
+            // Обновляем таймер каждую секунду
+            setInterval(update, 1000);
+            update(); // Первый запуск сразу
+        }
+
+        // --- ФИНАЛЬНЫЙ САЛЮТ (Конфетти) ---
+        function massiveConfetti() {
+            // Длительность салюта 5 секунд
+            const duration = 5 * 1000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+            function randomInRange(min, max) {
+              return Math.random() * (max - min) + min;
+            }
+
+            // Запускаем интервал, который стреляет конфетти
+            const interval = setInterval(function() {
+              const timeLeft = animationEnd - Date.now();
+
+              if (timeLeft <= 0) {
+                return clearInterval(interval);
+              }
+
+              const particleCount = 50 * (timeLeft / duration);
+              // Выстрелы с двух сторон экрана (слева и справа)
+              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+
+            // Финальное сообщение
+            setTimeout(() => {
+                alert("❤️ Я тебя обожаю! ❤️");
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
+
